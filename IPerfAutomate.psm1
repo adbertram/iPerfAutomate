@@ -36,7 +36,7 @@ function ConvertToUncPath
 
 function TestServerAvailability
 {
-	[OutputType([bool])]
+	[OutputType([pscustomobject])]
 	[CmdletBinding()]
 	param
 	(

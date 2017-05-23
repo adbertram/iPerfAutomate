@@ -14,26 +14,52 @@ InModuleScope $ThisModuleName {
 		$command = Get-Command -Name $commandName
 	
 		#region Mocks
-			
+			mock 'Test-Connection' {
+				$false
+			} -ParameterFilter { $ComputerName -eq 'offlinecomputer' }
+
+			mock 'Test-Connection' {
+				$true
+			} -ParameterFilter { $ComputerName -eq 'onlinecomputer' }
 		#endregion
 		
 		$parameterSets = @(
 			@{
-				TestName = ''
+				ComputerName = 'offlinecomputer'
+				TestName = 'Online computer'
+			}
+			@{
+				ComputerName = 'onlinecomputer'
+				TestName = 'Offline computer'
 			}
 		)
 	
 		$testCases = @{
 			All = $parameterSets
 		}
-	
-		it 'returns the same object type as defined in OutputType: <TestName>' -Skip -TestCases $testCases.All {
-			param()
+		
+		it 'returns the same object type as defined in OutputType: <TestName>' -TestCases $testCases.All {
+			param($ComputerName)
 	
 			& $commandName @PSBoundParameters | should beoftype $command.OutputType.Name
 	
 		}
+
+		it 'should return the expected object properties: <TestName>' -TestCases $testCases.All {
+			param($ComputerName)
 		
+			$result = & $commandName @PSBoundParameters
+
+			diff $result.PSObject.Properties.Name @('ComputerName','Online') | should benullorempty
+		}
+
+		it 'should return the expected object count: <TestName>' -TestCases $testCases.All {
+			param($ComputerName)
+		
+			$result = & $commandName @PSBoundParameters
+			@($result).Count | should be @($ComputerName).Count
+		}
+
 	}
 
 	describe 'TestFolderCompare' {
