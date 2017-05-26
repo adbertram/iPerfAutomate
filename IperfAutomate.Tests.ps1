@@ -6,6 +6,25 @@ Get-Module -Name $ThisModuleName -All | Remove-Module -Force
 Import-Module -Name $ThisModule -Force -ErrorAction Stop
 #endregion
 
+describe 'Module-level tests' {
+	
+	it 'should validate the module manifest' {
+	
+		{ Test-ModuleManifest -Path $ThisModule -ErrorAction Stop } | should not throw
+	}
+
+	it 'should pass all script analyzer rules' {
+
+		$excludedRules = @(
+			'PSUseShouldProcessForStateChangingFunctions',
+			'PSUseToExportFieldsInManifest',
+			'PSAvoidInvokingEmptyMembers'
+		)
+		Invoke-ScriptAnalyzer -Path $PSScriptRoot -ExcludeRule $excludedRules | should benullorempty
+	}
+
+}
+
 InModuleScope $ThisModuleName {
 
 	describe 'TestServerAvailability' {
@@ -50,7 +69,7 @@ InModuleScope $ThisModuleName {
 		
 			$result = & $commandName @PSBoundParameters
 
-			diff $result.PSObject.Properties.Name @('ComputerName','Online') | should benullorempty
+			Compare-Object $result.PSObject.Properties.Name @('ComputerName','Online') | should benullorempty
 		}
 
 		it 'should return the expected object count: <TestName>' -TestCases $testCases.All {
@@ -60,34 +79,6 @@ InModuleScope $ThisModuleName {
 			@($result).Count | should be @($ComputerName).Count
 		}
 
-	}
-
-	describe 'TestFolderCompare' {
-	
-		$commandName = 'TestFolderCompare'
-		$command = Get-Command -Name $commandName
-	
-		#region Mocks
-			
-		#endregion
-		
-		$parameterSets = @(
-			@{
-				TestName = ''
-			}
-		)
-	
-		$testCases = @{
-			All = $parameterSets
-		}
-	
-		it 'returns the same object type as defined in OutputType: <TestName>' -Skip -TestCases $testCases.All {
-			param()
-	
-			& $commandName @PSBoundParameters | should beoftype $command.OutputType.Name
-	
-		}
-		
 	}
 
 	describe 'InvokeIperf' {

@@ -21,6 +21,7 @@ Set-StrictMode -Version Latest
 
 function ConvertToUncPath
 {
+	[OutputType([string])]
 	[CmdletBinding()]
 	param (
 		[Parameter(Mandatory)]
@@ -61,49 +62,6 @@ function TestServerAvailability
 					$output.Online = $true
 				}
 				[pscustomobject]$output
-			}
-		}
-		catch
-		{
-			$PSCmdlet.ThrowTerminatingError($_)
-		}
-	}
-}
-
-function TestFolderCompare
-{
-	[OutputType([bool])]
-	[CmdletBinding()]
-	param
-	(
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$ReferenceFolderPath,
-
-		[Parameter(Mandatory)]
-		[ValidateNotNullOrEmpty()]
-		[string]$DifferenceFolderPath
-	)
-	begin
-	{
-		$ErrorActionPreference = 'Stop'
-	}
-	process
-	{
-		try
-		{
-			Write-Verbose -Message "Comparing folder contents of [$($Defaults.IPerfSharedFolderPath)] and [$($unciPerfFolderPath)]..."
-			$refHashes = Get-ChildItem -Path $ReferenceFolderPath -Recurse | Get-FileHash | Select-Object -ExpandProperty Hash
-			$diffHashes = Get-ChildItem -Path $DifferenceFolderPath -Recurse | Get-FileHash | Select-Object -ExpandProperty Hash
-			
-			if (-not ($refHashes + $diffHashes)) { ## Both folders are empty
-				$true
-			} elseif ((-not $refHashes) -or (-not $diffHashes)) { ## Only one folder is empty
-				$false
-			} elseif (diff $refHashes $diffHashes) { ## Both folders are not empty and have diffs
-				$false
-			} else {
-				$true
 			}
 		}
 		catch
@@ -154,7 +112,7 @@ function InvokeIperf
 			}
 
 			Write-Verbose -Message "Invoking iPerf in [$($mode)] mode on computer(s) [$ComputerName] using args [$($Arguments)]..."
-			$ComputerName | foreach {
+			$ComputerName | ForEach-Object {
 				if ($mode -eq 'Server') {
 					$icmParams.SessionName = "$_ - $mode - $($Defaults.InvokeIPerfPSSessionSuffix)"
 				}
@@ -164,7 +122,7 @@ function InvokeIperf
 					$fileShortPath = (New-Object -com scripting.filesystemobject).GetFile($args[0]).ShortPath
 					$cliString = "$fileShortPath $($args[1])"
 					Write-Verbose -Message "Invoking CLI [$($cliString)]"
-					Invoke-Expression $cliString
+					Start-Process -FilePath $fileShortPath -ArgumentList $args[1] -Wait -NoNewWindow
 				}
 			}
 		}
@@ -197,8 +155,6 @@ function StartIperfServer
 				Write-Verbose -Message "The server(s) [$(($runningServers -join ','))] are already running."
 				$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
 			}
-
-			$iperfServerFilePath = Join-Path -Path $Defaults.IperfServerFolderPath -ChildPath $iperfFileName
 
 			$null = InvokeIperf -ComputerName $ComputerName -Arguments '-s'
 		}
@@ -261,7 +217,7 @@ function StopIPerfServer
 		{
 			$PSCmdlet.ThrowTerminatingError($_)
 		} finally {
-			$ComputerName | foreach {
+			$ComputerName | ForEach-Object {
 				Get-PSSession -Name "$_ - Server*" -ErrorAction SilentlyContinue | Remove-PSSession
 			}
 			
@@ -373,7 +329,7 @@ function New-IperfSchedule
 		try
 		{
 			if ($PSCmdlet.ParameterSetName -eq 'Site') {
-				$ToServerName = $ToSite | foreach { $SiteServerMap.$_ }
+				$ToServerName = $ToSite | ForEach-Object { $SiteServerMap.$_ }
 				$FromServerName = $SiteServerMap.$FromSite
 			}
 
@@ -494,7 +450,7 @@ function Start-IPerfMonitorTest
 		try
 		{
 			if ($PSCmdlet.ParameterSetName -eq 'Site') {
-				$ToServerName = $ToSite | foreach { $SiteServerMap.$_ }
+				$ToServerName = $ToSite | ForEach-Object { $SiteServerMap.$_ }
 				$FromServerName = $SiteServerMap.$FromSite
 			}
 
@@ -504,19 +460,19 @@ function Start-IPerfMonitorTest
 			}
 
 			## Ensure the iPerf module is installed on all servers (if being invoked remotely)
-			(@($FromServerName) + $ToServerName) | where { $_ -notlike "$env:COMPUTERNAME*"} | foreach {
+			(@($FromServerName) + $ToServerName).({ $_ -notlike "$env:COMPUTERNAME*"}) | ForEach-Object {
 				Install-IperfModule -ComputerName $_
 			}
 
 			## Ensure all To Servers have a server instance running
 			if ($noservers = @($ToServerName).where({ -not (TestIPerfServerSession -ComputerName $_) })) {
-				$noservers | foreach {
+				$noservers | ForEach-Object {
 					Write-Verbose -Message "IPerf server not running on [$($_)]. Starting server..."
 					StartIperfServer -ComputerName $_
 				}
 			}
 
-			$ToServerName | foreach {
+			$ToServerName | ForEach-Object {
 				InvokeIperf -ComputerName $FromServerName -Arguments "-c $_"
 			}
 		} catch {
