@@ -512,11 +512,11 @@ function Start-IPerfMonitorTest
 			{
 				$testFile = NewTestFile
 				$localTestFilePath = 'C:\{0}' -f $testFile.Name
-				$copiedTestFiles = @()
+				$copiedTestFiles = [System.Collections.ArrayList]@()
 				@($FromServerName).foreach({
 					$uncTestFilePath = ConvertToUncPath -LocalFilePath $localTestFilePath -ComputerName $_
 					Write-Verbose -Message "Copying test file [$($testFile.FullName)] to $uncTestFilePath..."
-					$copiedTestFiles += Copy-Item -Path $testFile.FullName -Destination $uncTestFilePath -PassThru
+					$null = $copiedTestFiles.Add((Copy-Item -Path $testFile.FullName -Destination $uncTestFilePath -PassThru))
 				})
 				
 			}
@@ -536,6 +536,9 @@ function Start-IPerfMonitorTest
 			if (Get-Variable -Name testFile -ErrorAction Ignore) {
 				Write-Verbose -Message "Removing local test file [$($testFile.FullName)]"
 				Remove-Item -Path $testFile.FullName -ErrorAction Ignore
+			}
+
+			if (Get-Variable -Name copiedTestFiles -ErrorAction Ignore) {
 				Write-Verbose -Message "Removing copied test files [$($copiedTestFiles.FullName -join ',')]"
 				Remove-Item -Path $copiedTestFiles.FullName -ErrorAction Ignore
 			}

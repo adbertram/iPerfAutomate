@@ -18,7 +18,8 @@ describe 'Module-level tests' {
 		$excludedRules = @(
 			'PSUseShouldProcessForStateChangingFunctions',
 			'PSUseToExportFieldsInManifest',
-			'PSAvoidInvokingEmptyMembers'
+			'PSAvoidInvokingEmptyMembers',
+			'PSAvoidUsingInvokeExpression'
 		)
 		Invoke-ScriptAnalyzer -Path $PSScriptRoot -ExcludeRule $excludedRules | should benullorempty
 	}
@@ -33,16 +34,6 @@ InModuleScope $ThisModuleName {
 		EmailNotificationRecipients = 'foo@var.com','ghi@whaev.com'
 		SmtpServer = 'foo.test.local'
 		InvokeIPerfPSSessionSuffix = 'iPerf'
-	}
-
-	$SiteServerMap = @{
-		Reno = 'CLIENT1'
-		Mcpherson = 'DC'
-		Wichita = 'LABSQL'
-		Carlisle = 'FOO'
-		McDonough = 'FOO'
-		Nashua = 'FOO'
-		Broomfield = 'FOO'
 	}
 
 	describe 'ConvertToUncPath' {
@@ -149,7 +140,6 @@ InModuleScope $ThisModuleName {
 	describe 'InvokeIperf' {
 	
 		$commandName = 'InvokeIperf'
-		$command = Get-Command -Name $commandName
 	
 		#region Mocks
 			mock 'ConvertArgsToMode' {
@@ -222,7 +212,7 @@ InModuleScope $ThisModuleName {
 			it 'should not attempt to create a new server: <TestName>' -TestCases $testCases.Servers {
 				param($ComputerName,$Arguments)
 			
-				$result = & $commandName @PSBoundParameters
+				$null = & $commandName @PSBoundParameters
 
 				$assMParams = @{
 					CommandName = 'Invoke-Command'
@@ -236,7 +226,7 @@ InModuleScope $ThisModuleName {
 			it 'when a server is not already running, should create the session disconnected: <TestName>' -TestCases $testCases.Servers {
 				param($ComputerName,$Arguments)
 			
-				$result = & $commandName @PSBoundParameters
+				$null = & $commandName @PSBoundParameters
 
 				$assMParams = @{
 					CommandName = 'Invoke-Command'
@@ -255,7 +245,7 @@ InModuleScope $ThisModuleName {
 
 				$notRunningServers = $ComputerName | Where-Object { $_ -match 'NOTRUNNING' }
 			
-				$result = & $commandName @PSBoundParameters
+				$null = & $commandName @PSBoundParameters
 
 				foreach ($computer in $notRunningServers) {
 					$assMParams = @{
