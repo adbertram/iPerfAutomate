@@ -22,11 +22,8 @@ try {
 	$publishParams = @{
 		Path = $tempmoduleFolderPath
 		NuGetApiKey = $env:nuget_apikey
-		Repository = 'PSGallery'
-		Force = $true
-		Confirm = $false
 	}
-	Publish-Module @publishParams
+	Publish-PMModule @publishParams
 
 } catch {
 	Write-Error -Message $_.Exception.Message
