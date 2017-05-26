@@ -4,7 +4,7 @@ $Defaults = @{
 	IperfServerFolderPath = 'C:\Program Files\WindowsPowerShell\Modules\Iperf\bin'
 	EmailNotificationRecipients = 'foo@var.com','ghi@whaev.com'
 	SmtpServer = 'foo.test.local'
-	InvokeIPerfPSSessionSuffix = '- iPerf'
+	InvokeIPerfPSSessionSuffix = 'iPerf'
 }
 
 $SiteServerMap = @{
@@ -73,7 +73,7 @@ function TestServerAvailability
 
 function InvokeIperf
 {
-	[OutputType([System.Management.Automation.Runspaces.PSSession])]
+	[OutputType([void])]
 	[CmdletBinding()]
 	param
 	(
@@ -106,7 +106,7 @@ function InvokeIperf
 				## Do not invoke server mode for servers that already have it running
 				if ($runningServers = @($ComputerName).where({ TestIPerfServerSession -ComputerName $_ })) {
 					Write-Verbose -Message "The server(s) [$(($runningServers -join ','))] are already running."
-					$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
+					[string[]]$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
 				}
 				$icmParams.InDisconnectedSession = $true
 			}
@@ -121,8 +121,7 @@ function InvokeIperf
 					## Convert to short name so that IEX doesn't puke when using quotes
 					$fileShortPath = (New-Object -com scripting.filesystemobject).GetFile($args[0]).ShortPath
 					$cliString = "$fileShortPath $($args[1])"
-					Write-Verbose -Message "Invoking CLI [$($cliString)]"
-					Start-Process -FilePath $fileShortPath -ArgumentList $args[1] -Wait -NoNewWindow
+					Invoke-Expression -Command $cliString
 				}
 			}
 		}
@@ -401,6 +400,20 @@ function Install-IPerfModule
 	}
 }
 
+function NewTestFile
+{
+	[OutputType([System.IO.FileInfo])]
+	[CmdletBinding()]
+	param
+	()
+	
+	$testFilePath = "$env:temp\testfile.txt"
+	$file = [IO.File]::Create($testFilePath)
+	$file.SetLength((Invoke-Expression -Command $FileSize))
+	$file.Close()
+	Get-Item -Path $testFilePath
+}
+
 function Start-IPerfMonitorTest
 {
 	<#
@@ -439,7 +452,29 @@ function Start-IPerfMonitorTest
 
 		[Parameter(Mandatory,ParameterSetName = 'Server')]
 		[ValidateNotNullOrEmpty()]
-		[string[]]$ToServerName
+		[string[]]$ToServerName,
+
+		[Parameter()]
+		[ValidateNotNullOrEmpty()]
+		[ValidateScript({
+			if ($_ -notmatch 'KB$') {
+				throw "FileSize must end with 'KB' to indicate kilobytes"
+			} else {
+				$true
+			}
+		})]
+		[string]$WindowSize = '712KB',
+
+		[Parameter()]
+		[ValidateNotNullOrEmpty()]
+		[ValidateScript({
+			if ($_ -notmatch 'MB$') {
+				throw "FileSize must end with 'MB' to indicate megabytes"
+			} else {
+				$true
+			}
+		})]
+		[string]$FileSize
 	)
 	begin
 	{
@@ -460,7 +495,7 @@ function Start-IPerfMonitorTest
 			}
 
 			## Ensure the iPerf module is installed on all servers (if being invoked remotely)
-			(@($FromServerName) + $ToServerName).({ $_ -notlike "$env:COMPUTERNAME*"}) | ForEach-Object {
+			(@($FromServerName) + $ToServerName).where({ $_ -notlike "$env:COMPUTERNAME*"}) | ForEach-Object {
 				Install-IperfModule -ComputerName $_
 			}
 
@@ -472,13 +507,38 @@ function Start-IPerfMonitorTest
 				}
 			}
 
+			## Create the test file and copy it to clients, if necessary
+			if ($PSBoundParameters.ContainsKey('FileSize'))
+			{
+				$testFile = NewTestFile
+				$localTestFilePath = 'C:\{0}' -f $testFile.Name
+				$copiedTestFiles = @()
+				@($FromServerName).foreach({
+					$uncTestFilePath = ConvertToUncPath -LocalFilePath $localTestFilePath -ComputerName $_
+					Write-Verbose -Message "Copying test file [$($testFile.FullName)] to $uncTestFilePath..."
+					$copiedTestFiles += Copy-Item -Path $testFile.FullName -Destination $uncTestFilePath -PassThru
+				})
+				
+			}
+			
 			$ToServerName | ForEach-Object {
-				InvokeIperf -ComputerName $FromServerName -Arguments "-c $_"
+				$iPerfArgs = ('-c {0} -w {1}' -f $_,$WindowSize)
+				if ($PSBoundParameters.ContainsKey('FileSize'))
+				{
+					$iPerfArgs += " -F `"$localTestFilePath`""
+				}
+				InvokeIperf -ComputerName $FromServerName -Arguments $iPerfArgs
 			}
 		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		} finally {
 			StopIperfServer -ComputerName $ToServerName
+			if (Get-Variable -Name testFile -ErrorAction Ignore) {
+				Write-Verbose -Message "Removing local test file [$($testFile.FullName)]"
+				Remove-Item -Path $testFile.FullName -ErrorAction Ignore
+				Write-Verbose -Message "Removing copied test files [$($copiedTestFiles.FullName -join ',')]"
+				Remove-Item -Path $copiedTestFiles.FullName -ErrorAction Ignore
+			}
 		}
 	}
 }
