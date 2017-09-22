@@ -1,26 +1,25 @@
 $iperfFileName = 'iperf3.exe'
 $Defaults = @{
-	IPerfSharedFolderPath = 'C:\Program Files\WindowsPowerShell\Modules\Iperf'
-	IperfServerFolderPath = 'C:\Program Files\WindowsPowerShell\Modules\Iperf\bin'
-	EmailNotificationRecipients = 'foo@var.com','ghi@whaev.com'
-	SmtpServer = 'foo.test.local'
-	InvokeIPerfPSSessionSuffix = 'iPerf'
+	IPerfSharedFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\IperfAutomate'
+	IperfServerFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\IperfAutomate\bin'
+	EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
+	SmtpServer                  = 'foo.test.local'
+	InvokeIPerfPSSessionSuffix  = 'iPerf'
 }
 
 $SiteServerMap = @{
-	Reno = 'CLIENT1'
-	Mcpherson = 'DC'
-	Wichita = 'LABSQL'
-	Carlisle = 'FOO'
-	McDonough = 'FOO'
-	Nashua = 'FOO'
+	Reno       = 'CLIENT1'
+	Mcpherson  = 'DC'
+	Wichita    = 'LABSQL'
+	Carlisle   = 'FOO'
+	McDonough  = 'FOO'
+	Nashua     = 'FOO'
 	Broomfield = 'FOO'
 }
 
 Set-StrictMode -Version Latest
 
-function ConvertToUncPath
-{
+function ConvertToUncPath {
 	[OutputType([string])]
 	[CmdletBinding()]
 	param (
@@ -35,8 +34,7 @@ function ConvertToUncPath
 	"\\$ComputerName\$RemoteFilePathDrive`$$($LocalFilePath | Split-Path -NoQualifier)"
 }
 
-function TestServerAvailability
-{
+function TestServerAvailability {
 	[OutputType([pscustomobject])]
 	[CmdletBinding()]
 	param
@@ -45,34 +43,28 @@ function TestServerAvailability
 		[ValidateNotNullOrEmpty()]
 		[string[]]$ComputerName
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			foreach ($computer in $ComputerName) {
 				$output = @{
 					ComputerName = $computer
-					Online = $false
+					Online       = $false
 				}
 				if (Test-Connection -ComputerName $computer -Quiet -Count 1) {
 					$output.Online = $true
 				}
 				[pscustomobject]$output
 			}
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function InvokeIperf
-{
+function InvokeIperf {
 	[OutputType([void])]
 	[CmdletBinding()]
 	param
@@ -85,14 +77,11 @@ function InvokeIperf
 		[ValidateNotNullOrEmpty()]
 		[string]$Arguments
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			$iperfServerFilePath = Join-Path -Path $Defaults.IperfServerFolderPath -ChildPath $iperfFileName
 
 			$mode = ConvertArgsToMode -IPerfArgs $Arguments
@@ -124,16 +113,13 @@ function InvokeIperf
 					Invoke-Expression -Command $cliString
 				}
 			}
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function StartIperfServer
-{
+function StartIperfServer {
 	[OutputType([void])]
 	[CmdletBinding()]
 	param
@@ -142,30 +128,24 @@ function StartIperfServer
 		[ValidateNotNullOrEmpty()]
 		[string[]]$ComputerName
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			if ($runningServers = @($ComputerName).where({ TestIPerfServerSession -ComputerName $_ })) {
 				Write-Verbose -Message "The server(s) [$(($runningServers -join ','))] are already running."
 				$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
 			}
 
 			$null = InvokeIperf -ComputerName $ComputerName -Arguments '-s'
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function ConvertArgsToMode
-{
+function ConvertArgsToMode {
 	[OutputType([string])]
 	[CmdletBinding()]
 	param
@@ -187,8 +167,7 @@ function ConvertArgsToMode
 	}
 }
 
-function StopIPerfServer
-{
+function StopIPerfServer {
 	[OutputType([void])]
 	[CmdletBinding()]
 	param
@@ -197,23 +176,18 @@ function StopIPerfServer
 		[ValidateNotNullOrEmpty()]
 		[string[]]$ComputerName
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			$icmParams = @{
 				ComputerName = $ComputerName
-				ScriptBlock = { Get-Process -Name $args[0] -ErrorAction SilentlyContinue | Stop-Process }
+				ScriptBlock  = { Get-Process -Name $args[0] -ErrorAction SilentlyContinue | Stop-Process }
 				ArgumentList = [System.IO.Path]::GetFileNameWithoutExtension($iperfFileName)
 			}
 			Invoke-Command @icmParams
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		} finally {
 			$ComputerName | ForEach-Object {
@@ -224,8 +198,7 @@ function StopIPerfServer
 	}
 }
 
-function TestIPerfServerSession
-{
+function TestIPerfServerSession {
 	[OutputType([bool])]
 	[CmdletBinding()]
 	param
@@ -234,35 +207,29 @@ function TestIPerfServerSession
 		[ValidateNotNullOrEmpty()]
 		[string]$ComputerName
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			$cimParams = @{
 				ComputerName = $ComputerName
-				ClassName = 'Win32_Process'
-				Filter = "Name = 'iperf3.exe'"
-				Property = 'CommandLine'
+				ClassName    = 'Win32_Process'
+				Filter       = "Name = 'iperf3.exe'"
+				Property     = 'CommandLine'
 			}
 			if (($serverProc =  Get-CimInstance @cimParams) -and ($serverProc.CommandLine -match '-s$')) {
 				$true
 			} else {
 				$false
 			}
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function New-IperfSchedule
-{
+function New-IperfSchedule {
 	<#
 		.SYNOPSIS
 			This function find the server mapped to FromSite and creates one or more Windows scheduled task on that server to 
@@ -293,21 +260,21 @@ function New-IperfSchedule
 	[CmdletBinding()]
 	param
 	(
-		[Parameter(Mandatory,ParameterSetName = 'Site')]
+		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno','Mcpherson','Wichita','Carlisle','McDonough','Nashua','Broomfield')]
+		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string]$FromSite,
 
-		[Parameter(Mandatory,ParameterSetName = 'Site')]
+		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno','Mcpherson','Wichita','Carlisle','McDonough','Nashua','Broomfield')]
+		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string[]]$ToSite,
 
-		[Parameter(Mandatory,ParameterSetName = 'Server')]
+		[Parameter(Mandatory, ParameterSetName = 'Server')]
 		[ValidateNotNullOrEmpty()]
 		[string]$FromServerName,
 
-		[Parameter(Mandatory,ParameterSetName = 'Server')]
+		[Parameter(Mandatory, ParameterSetName = 'Server')]
 		[ValidateNotNullOrEmpty()]
 		[string[]]$ToServerName,
 
@@ -319,14 +286,11 @@ function New-IperfSchedule
 		[ValidateNotNullOrEmpty()]
 		[datetime]$Time = '06:00'
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			if ($PSCmdlet.ParameterSetName -eq 'Site') {
 				$ToServerName = $ToSite | ForEach-Object { $SiteServerMap.$_ }
 				$FromServerName = $SiteServerMap.$FromSite
@@ -362,17 +326,14 @@ function New-IperfSchedule
 				$action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Unrestricted -Command `"$psCommand`""
 				$task = New-ScheduledTask -Action $action -Trigger $trigger -Settings $settings
 				Register-ScheduledTask "IPerf Network Test - [$($args[1] -join ',')]" -InputObject $task
-			} -ArgumentList $localIperfFilePath,$ToServerName,$Daily,$Time,$Defaults.EmailNotificationRecipients
-		}
-		catch
-		{
+			} -ArgumentList $localIperfFilePath, $ToServerName, $Daily, $Time, $Defaults.EmailNotificationRecipients
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function Install-IPerfModule
-{
+function Install-IPerfModule {
 	[OutputType([void])]
 	[CmdletBinding()]
 	param
@@ -381,27 +342,26 @@ function Install-IPerfModule
 		[ValidateNotNullOrEmpty()]
 		[string]$ComputerName
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			$modulePath = ConvertToUncPath -LocalFilePath 'C:\Program Files\WindowsPowerShell\Modules' -ComputerName $ComputerName
 			Write-Verbose -Message "Copying IPerf module to [$($modulePath)]..."
+			if ($PSScriptRoot -eq 'iPerfAutomate') {
+				$path = $PSScriptRoot
+			} else {
+				$path = $PSScriptRoot | Split-Path -Parent
+			}
 			Copy-Item -Path $PSScriptRoot -Destination $modulePath -Recurse -Force
-		}
-		catch
-		{
+		} catch {
 			$PSCmdlet.ThrowTerminatingError($_)
 		}
 	}
 }
 
-function NewTestFile
-{
+function NewTestFile {
 	[OutputType([System.IO.FileInfo])]
 	[CmdletBinding()]
 	param
@@ -414,8 +374,7 @@ function NewTestFile
 	Get-Item -Path $testFilePath
 }
 
-function Start-IPerfMonitorTest
-{
+function Start-IPerfMonitorTest {
 	<#
 		.SYNOPSIS
 			This function invokes Iperf from the server at site FromSite to all of the sites specified in ToSite.
@@ -436,54 +395,51 @@ function Start-IPerfMonitorTest
 	[CmdletBinding()]
 	param
 	(
-		[Parameter(Mandatory,ParameterSetName = 'Site')]
+		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno','Mcpherson','Wichita','Carlisle','McDonough','Nashua','Broomfield')]
+		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string]$FromSite,
 
-		[Parameter(Mandatory,ParameterSetName = 'Site')]
+		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno','Mcpherson','Wichita','Carlisle','McDonough','Nashua','Broomfield')]
+		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string[]]$ToSite,
 
-		[Parameter(Mandatory,ParameterSetName = 'Server')]
+		[Parameter(Mandatory, ParameterSetName = 'Server')]
 		[ValidateNotNullOrEmpty()]
 		[string]$FromServerName,
 
-		[Parameter(Mandatory,ParameterSetName = 'Server')]
+		[Parameter(Mandatory, ParameterSetName = 'Server')]
 		[ValidateNotNullOrEmpty()]
 		[string[]]$ToServerName,
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
 		[ValidateScript({
-			if ($_ -notmatch 'KB$') {
-				throw "FileSize must end with 'KB' to indicate kilobytes"
-			} else {
-				$true
-			}
-		})]
+				if ($_ -notmatch 'KB$') {
+					throw "FileSize must end with 'KB' to indicate kilobytes"
+				} else {
+					$true
+				}
+			})]
 		[string]$WindowSize = '712KB',
 
 		[Parameter()]
 		[ValidateNotNullOrEmpty()]
 		[ValidateScript({
-			if ($_ -notmatch 'MB$') {
-				throw "FileSize must end with 'MB' to indicate megabytes"
-			} else {
-				$true
-			}
-		})]
+				if ($_ -notmatch 'MB$') {
+					throw "FileSize must end with 'MB' to indicate megabytes"
+				} else {
+					$true
+				}
+			})]
 		[string]$FileSize
 	)
-	begin
-	{
+	begin {
 		$ErrorActionPreference = 'Stop'
 	}
-	process
-	{
-		try
-		{
+	process {
+		try {
 			if ($PSCmdlet.ParameterSetName -eq 'Site') {
 				$ToServerName = $ToSite | ForEach-Object { $SiteServerMap.$_ }
 				$FromServerName = $SiteServerMap.$FromSite
@@ -508,23 +464,21 @@ function Start-IPerfMonitorTest
 			}
 
 			## Create the test file and copy it to clients, if necessary
-			if ($PSBoundParameters.ContainsKey('FileSize'))
-			{
+			if ($PSBoundParameters.ContainsKey('FileSize')) {
 				$testFile = NewTestFile
 				$localTestFilePath = 'C:\{0}' -f $testFile.Name
 				$copiedTestFiles = [System.Collections.ArrayList]@()
 				@($FromServerName).foreach({
-					$uncTestFilePath = ConvertToUncPath -LocalFilePath $localTestFilePath -ComputerName $_
-					Write-Verbose -Message "Copying test file [$($testFile.FullName)] to $uncTestFilePath..."
-					$null = $copiedTestFiles.Add((Copy-Item -Path $testFile.FullName -Destination $uncTestFilePath -PassThru))
-				})
+						$uncTestFilePath = ConvertToUncPath -LocalFilePath $localTestFilePath -ComputerName $_
+						Write-Verbose -Message "Copying test file [$($testFile.FullName)] to $uncTestFilePath..."
+						$null = $copiedTestFiles.Add((Copy-Item -Path $testFile.FullName -Destination $uncTestFilePath -PassThru))
+					})
 				
 			}
 			
 			$ToServerName | ForEach-Object {
-				$iPerfArgs = ('-c {0} -w {1}' -f $_,$WindowSize)
-				if ($PSBoundParameters.ContainsKey('FileSize'))
-				{
+				$iPerfArgs = ('-c {0} -w {1}' -f $_, $WindowSize)
+				if ($PSBoundParameters.ContainsKey('FileSize')) {
 					$iPerfArgs += " -F `"$localTestFilePath`""
 				}
 				InvokeIperf -ComputerName $FromServerName -Arguments $iPerfArgs
