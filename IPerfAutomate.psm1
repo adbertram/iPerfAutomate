@@ -451,7 +451,8 @@ function Start-IPerfMonitorTest {
 			}
 
 			## Ensure the iPerf module is installed on all servers (if being invoked remotely)
-			(@($FromServerName) + $ToServerName).where({ $_ -notlike "$env:COMPUTERNAME*"}) | ForEach-Object {
+			$serverNames = @($FromServerName) + $ToServerName
+			$serverNames.where({ $_ -notlike "$env:COMPUTERNAME*" -and $_ -ne 'localhost' }) | ForEach-Object {
 				Install-IperfModule -ComputerName $_
 			}
 
