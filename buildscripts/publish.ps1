@@ -11,6 +11,7 @@ try {
 		'iPerfAutomate\\appveyor\.yml'
 		'iPerfAutomate\\\.git'
 		'iPerfAutomate\\README\.md'
+		'iPerfAutomate\\TestResults.xml'
 	)
 	$exclude = $excludeFromPublish -join '|'
 	Get-ChildItem -Path $env:APPVEYOR_BUILD_FOLDER -Recurse | where { $_.FullName -match $exclude } | Move-Item -Destination $env:temp
@@ -20,7 +21,7 @@ try {
 
 	## Publish module to PowerShell Gallery
 	$publishParams = @{
-		Path = $tempmoduleFolderPath
+		Path        = $tempmoduleFolderPath
 		NuGetApiKey = $env:nuget_apikey
 	}
 	Publish-PMModule @publishParams
