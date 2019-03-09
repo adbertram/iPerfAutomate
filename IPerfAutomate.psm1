@@ -8,13 +8,9 @@ $Defaults = @{
 }
 
 $SiteServerMap = @{
-	Reno       = 'CLIENT1'
-	Mcpherson  = 'DC'
-	Wichita    = 'LABSQL'
-	Carlisle   = 'FOO'
-	McDonough  = 'FOO'
-	Nashua     = 'FOO'
-	Broomfield = 'FOO'
+	'<YourSiteHere1>' = '<AHostAtThisSite>'
+	'<YourSiteHere2>' = '<AHostAtThisSite>'
+	
 }
 
 Set-StrictMode -Version Latest
@@ -397,12 +393,10 @@ function Start-IPerfMonitorTest {
 	(
 		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string]$FromSite,
 
 		[Parameter(Mandatory, ParameterSetName = 'Site')]
 		[ValidateNotNullOrEmpty()]
-		[ValidateSet('Reno', 'Mcpherson', 'Wichita', 'Carlisle', 'McDonough', 'Nashua', 'Broomfield')]
 		[string[]]$ToSite,
 
 		[Parameter(Mandatory, ParameterSetName = 'Server')]
