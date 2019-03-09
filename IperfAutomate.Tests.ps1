@@ -136,11 +136,11 @@ InModuleScope $ThisModuleName {
 
 		mock 'Invoke-Command'
 
-		mock 'TestIPerfServerSession' {
+		mock 'Test-IPerfServer' {
 			$true
 		} -ParameterFilter { $ComputerName -match 'RUNNING' }
 
-		mock 'TestIPerfServerSession' {
+		mock 'Test-IPerfServer' {
 			$false
 		} -ParameterFilter { $ComputerName -match 'NOTRUNNING' }
 		#endregion
@@ -340,9 +340,9 @@ InModuleScope $ThisModuleName {
 		
 	}
 
-	describe 'TestIPerfServerSession' {
+	describe 'Test-IPerfServer' {
 	
-		$commandName = 'TestIPerfServerSession'
+		$commandName = 'Test-IPerfServer'
 		$command = Get-Command -Name $commandName
 	
 		#region Mocks
