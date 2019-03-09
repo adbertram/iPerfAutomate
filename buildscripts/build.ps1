@@ -7,17 +7,18 @@ try {
 
 	$functionsToExport = @(
 		'New-IperfSchedule',
-		'Start-IPerfMonitorTest'
+		'Start-IPerfMonitorTest',
+		'Test-IPerfServer'
 	)
 
 	## Update the module version based on the build version and limit exported functions
 	$replacements = @{
-		"ModuleVersion = '.*'" = "ModuleVersion = '$env:APPVEYOR_BUILD_VERSION'"
+		"ModuleVersion = '.*'"     = "ModuleVersion = '$env:APPVEYOR_BUILD_VERSION'"
 		"FunctionsToExport = '\*'" = 'FunctionsToExport = @({0})' -f "'$($functionsToExport -join "','")'"
 	}		
 
 	$replacements.GetEnumerator() | foreach {
-		$manifestContent = $manifestContent -replace $_.Key,$_.Value
+		$manifestContent = $manifestContent -replace $_.Key, $_.Value
 	}
 
 	$manifestContent | Set-Content -Path $manifestFilePath
