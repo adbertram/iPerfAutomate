@@ -1,7 +1,6 @@
 $iperfFileName = 'iperf3.exe'
 $Defaults = @{
 	IPerfSharedFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\IperfAutomate'
-	IperfServerFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\IperfAutomate\bin'
 	EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
 	SmtpServer                  = 'foo.test.local'
 	InvokeIPerfPSSessionSuffix  = 'iPerf'
@@ -78,7 +77,7 @@ function InvokeIperf {
 	}
 	process {
 		try {
-			$iperfServerFilePath = Join-Path -Path $Defaults.IperfServerFolderPath -ChildPath $iperfFileName
+			$iperfServerFilePath = Join-Path -Path $Defaults.IPerfSharedFolderPath -ChildPath $iperfFileName
 
 			$mode = ConvertArgsToMode -IPerfArgs $Arguments
 
@@ -292,7 +291,7 @@ function New-IperfSchedule {
 				$FromServerName = $SiteServerMap.$FromSite
 			}
 
-			$localIperfFilePath = Join-Path -Path $Defaults.IperfServerFolderPath -ChildPath $iperfFileName
+			$localIperfFilePath = Join-Path -Path $Defaults.IPerfSharedFolderPath -ChildPath $iperfFileName
 
 			## Ensure the latest copy is on the remote computer
 			Install-IperfModule -ComputerName $FromServerName
