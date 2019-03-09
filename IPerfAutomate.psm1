@@ -90,7 +90,7 @@ function InvokeIperf {
 
 			if ($mode -eq 'Server') {
 				## Do not invoke server mode for servers that already have it running
-				if ($runningServers = @($ComputerName).where({ TestIPerfServerSession -ComputerName $_ })) {
+				if ($runningServers = @($ComputerName).where({ Test-IPerfServer -ComputerName $_ })) {
 					Write-Verbose -Message "The server(s) [$(($runningServers -join ','))] are already running."
 					[string[]]$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
 				}
@@ -130,7 +130,7 @@ function StartIperfServer {
 	}
 	process {
 		try {
-			if ($runningServers = @($ComputerName).where({ TestIPerfServerSession -ComputerName $_ })) {
+			if ($runningServers = @($ComputerName).where({ Test-IPerfServer -ComputerName $_ })) {
 				Write-Verbose -Message "The server(s) [$(($runningServers -join ','))] are already running."
 				$ComputerName = @($ComputerName).where({ $_ -notin $runningServers})
 			}
@@ -195,7 +195,7 @@ function StopIPerfServer {
 	}
 }
 
-function TestIPerfServerSession {
+function Test-IPerfServer {
 	[OutputType([bool])]
 	[CmdletBinding()]
 	param
@@ -452,7 +452,7 @@ function Start-IPerfMonitorTest {
 			}
 
 			## Ensure all To Servers have a server instance running
-			if ($noservers = @($ToServerName).where({ -not (TestIPerfServerSession -ComputerName $_) })) {
+			if ($noservers = @($ToServerName).where({ -not (Test-IPerfServer -ComputerName $_) })) {
 				$noservers | ForEach-Object {
 					Write-Verbose -Message "IPerf server not running on [$($_)]. Starting server..."
 					StartIperfServer -ComputerName $_
