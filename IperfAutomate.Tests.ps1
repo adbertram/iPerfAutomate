@@ -12,28 +12,16 @@ describe 'Module-level tests' {
 	
 		{ Test-ModuleManifest -Path $ThisModule -ErrorAction Stop } | should not throw
 	}
-
-	it 'should pass all script analyzer rules' {
-
-		$excludedRules = @(
-			'PSUseShouldProcessForStateChangingFunctions',
-			'PSUseToExportFieldsInManifest',
-			'PSAvoidInvokingEmptyMembers',
-			'PSAvoidUsingInvokeExpression'
-		)
-		Invoke-ScriptAnalyzer -Path $PSScriptRoot -ExcludeRule $excludedRules | should benullorempty
-	}
-
 }
 
 InModuleScope $ThisModuleName {
 
 	$Defaults = @{
-		IPerfSharedFolderPath = 'C:\Program Files\WindowsPowerShell\Modules\Iperf'
-		IperfServerFolderPath = 'C:\Program Files\WindowsPowerShell\Modules\Iperf\bin'
-		EmailNotificationRecipients = 'foo@var.com','ghi@whaev.com'
-		SmtpServer = 'foo.test.local'
-		InvokeIPerfPSSessionSuffix = 'iPerf'
+		IPerfSharedFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\Iperf'
+		IperfServerFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\Iperf\bin'
+		EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
+		SmtpServer                  = 'foo.test.local'
+		InvokeIPerfPSSessionSuffix  = 'iPerf'
 	}
 
 	describe 'ConvertToUncPath' {
@@ -43,16 +31,16 @@ InModuleScope $ThisModuleName {
 		
 		$parameterSets = @(
 			@{
-				LocalFilePath = 'C:\Folder\File.txt'
-				ComputerName = 'computer'
+				LocalFilePath  = 'C:\Folder\File.txt'
+				ComputerName   = 'computer'
 				ExpectedString = '\\computer\c$\Folder\File.txt'
-				TestName = 'File'
+				TestName       = 'File'
 			}
 			@{
-				LocalFilePath = 'C:\Folder'
-				ComputerName = 'computer'
+				LocalFilePath  = 'C:\Folder'
+				ComputerName   = 'computer'
 				ExpectedString = '\\computer\c$\Folder'
-				TestName = 'Folder'
+				TestName       = 'Folder'
 			}
 		)
 	
@@ -61,21 +49,21 @@ InModuleScope $ThisModuleName {
 		}
 
 		it 'should returns the expected object count: <TestName>' -TestCases $testCases.All {
-			param($LocalFilePath,$ComputerName)
+			param($LocalFilePath, $ComputerName)
 		
 			$result = & $commandName @PSBoundParameters
 			@($result).Count | should be 1
 		}
 	
 		it 'returns the same object type as defined in OutputType: <TestName>' -TestCases $testCases.All {
-			param($LocalFilePath,$ComputerName)
+			param($LocalFilePath, $ComputerName)
 	
 			& $commandName @PSBoundParameters | should beoftype $command.OutputType.Name
 	
 		}
 
 		it 'should return the expected string: <TestName>' -TestCases $testCases.All {
-			param($LocalFilePath,$ComputerName,$ExpectedString)
+			param($LocalFilePath, $ComputerName, $ExpectedString)
 		
 			$result = & $commandName -LocalFilePath $LocalFilePath -ComputerName $ComputerName
 			$result | should be $ExpectedString
@@ -89,23 +77,23 @@ InModuleScope $ThisModuleName {
 		$command = Get-Command -Name $commandName
 	
 		#region Mocks
-			mock 'Test-Connection' {
-				$false
-			} -ParameterFilter { $ComputerName -eq 'offlinecomputer' }
+		mock 'Test-Connection' {
+			$false
+		} -ParameterFilter { $ComputerName -eq 'offlinecomputer' }
 
-			mock 'Test-Connection' {
-				$true
-			} -ParameterFilter { $ComputerName -eq 'onlinecomputer' }
+		mock 'Test-Connection' {
+			$true
+		} -ParameterFilter { $ComputerName -eq 'onlinecomputer' }
 		#endregion
 		
 		$parameterSets = @(
 			@{
 				ComputerName = 'offlinecomputer'
-				TestName = 'Online computer'
+				TestName     = 'Online computer'
 			}
 			@{
 				ComputerName = 'onlinecomputer'
-				TestName = 'Offline computer'
+				TestName     = 'Offline computer'
 			}
 		)
 	
@@ -125,7 +113,7 @@ InModuleScope $ThisModuleName {
 		
 			$result = & $commandName @PSBoundParameters
 
-			Compare-Object $result.PSObject.Properties.Name @('ComputerName','Online') | should benullorempty
+			Compare-Object $result.PSObject.Properties.Name @('ComputerName', 'Online') | should benullorempty
 		}
 
 		it 'should return the expected object count: <TestName>' -TestCases $testCases.All {
@@ -142,62 +130,62 @@ InModuleScope $ThisModuleName {
 		$commandName = 'InvokeIperf'
 	
 		#region Mocks
-			mock 'ConvertArgsToMode' {
-				'Client'
-			}
+		mock 'ConvertArgsToMode' {
+			'Client'
+		}
 
-			mock 'Invoke-Command'
+		mock 'Invoke-Command'
 
-			mock 'TestIPerfServerSession' {
-				$true
-			} -ParameterFilter { $ComputerName -match 'RUNNING' }
+		mock 'TestIPerfServerSession' {
+			$true
+		} -ParameterFilter { $ComputerName -match 'RUNNING' }
 
-			mock 'TestIPerfServerSession' {
-				$false
-			} -ParameterFilter { $ComputerName -match 'NOTRUNNING' }
+		mock 'TestIPerfServerSession' {
+			$false
+		} -ParameterFilter { $ComputerName -match 'NOTRUNNING' }
 		#endregion
 		
 		$parameterSets = @(
 			@{
-				Arguments = '-s'
+				Arguments    = '-s'
 				ComputerName = 'RUNNINGSRV'
-				TestName = 'Server mode'
+				TestName     = 'Server mode'
 			}
 			@{
-				Arguments = '-s'
-				ComputerName = 'RUNNINGSRV','RUNNINGSRV2'
-				TestName = 'Multiple computers / Both running'
+				Arguments    = '-s'
+				ComputerName = 'RUNNINGSRV', 'RUNNINGSRV2'
+				TestName     = 'Multiple computers / Both running'
 			}
 			@{
-				Arguments = '-s'
-				ComputerName = 'RUNNINGSRV','NOTRUNNINGSRV2'
-				TestName = 'Multiple computers / One running'
+				Arguments    = '-s'
+				ComputerName = 'RUNNINGSRV', 'NOTRUNNINGSRV2'
+				TestName     = 'Multiple computers / One running'
 			}
 			@{
-				Arguments = '-c COMPUTER'
+				Arguments    = '-c COMPUTER'
 				ComputerName = 'CLIENT'
-				TestName = 'Client mode'
+				TestName     = 'Client mode'
 			}
 			@{
 				ComputerName = 'RUNNINGSRV'
-				Arguments = 'dfdfdf'
-				TestName = 'Bogus arguments'
+				Arguments    = 'dfdfdf'
+				TestName     = 'Bogus arguments'
 			}
 			@{
 				ComputerName = 'NOTRUNNINGSRV'
-				Arguments = '-s'
-				TestName = 'Offline computer'
+				Arguments    = '-s'
+				TestName     = 'Offline computer'
 			}
 		)
 	
 		$testCases = @{
-			All = $parameterSets
+			All     = $parameterSets
 			Servers = $parameterSets.where({$_.ComputerName -match 'SRV'})
 			Clients = $parameterSets.where({$_.ComputerName -match 'CLIENT'})
 		}
 	
 		it 'returns nothing: <TestName>' -TestCases $testCases.All {
-			param($ComputerName,$Arguments)
+			param($ComputerName, $Arguments)
 	
 			& $commandName @PSBoundParameters | should benullorempty
 	
@@ -210,29 +198,29 @@ InModuleScope $ThisModuleName {
 			}
 
 			it 'should not attempt to create a new server: <TestName>' -TestCases $testCases.Servers {
-				param($ComputerName,$Arguments)
+				param($ComputerName, $Arguments)
 			
 				$null = & $commandName @PSBoundParameters
 
 				$assMParams = @{
 					CommandName = 'Invoke-Command'
-					Times = @($ComputerName | Where-Object {$_ -match 'NOTRUNNING'}).Count
-					Exactly = $true
-					Scope = 'It'
+					Times       = @($ComputerName | Where-Object {$_ -match 'NOTRUNNING'}).Count
+					Exactly     = $true
+					Scope       = 'It'
 				}
 				Assert-MockCalled @assMParams
 			}
 
 			it 'when a server is not already running, should create the session disconnected: <TestName>' -TestCases $testCases.Servers {
-				param($ComputerName,$Arguments)
+				param($ComputerName, $Arguments)
 			
 				$null = & $commandName @PSBoundParameters
 
 				$assMParams = @{
-					CommandName = 'Invoke-Command'
-					Times = @($ComputerName | Where-Object {$_ -match 'NOTRUNNING'}).Count
-					Exactly = $true
-					Scope = 'It'
+					CommandName     = 'Invoke-Command'
+					Times           = @($ComputerName | Where-Object {$_ -match 'NOTRUNNING'}).Count
+					Exactly         = $true
+					Scope           = 'It'
 					ParameterFilter = { 
 						$PSBoundParameters.InDisconnectedSession 
 					}
@@ -241,7 +229,7 @@ InModuleScope $ThisModuleName {
 			}
 
 			it 'when a server is not already running, should create a session with the expected name: <TestName>' -TestCases $testCases.Servers {
-				param($ComputerName,$Arguments)
+				param($ComputerName, $Arguments)
 
 				$notRunningServers = $ComputerName | Where-Object { $_ -match 'NOTRUNNING' }
 			
@@ -249,10 +237,10 @@ InModuleScope $ThisModuleName {
 
 				foreach ($computer in $notRunningServers) {
 					$assMParams = @{
-						CommandName = 'Invoke-Command'
-						Times = 1
-						Exactly = $true
-						Scope = 'It'
+						CommandName     = 'Invoke-Command'
+						Times           = 1
+						Exactly         = $true
+						Scope           = 'It'
 						ParameterFilter = {
 							$PSBoundParameters.SessionName -eq "$computer - Server - $($Defaults.InvokeIPerfPSSessionSuffix)"
 						}

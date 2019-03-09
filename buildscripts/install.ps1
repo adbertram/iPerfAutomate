@@ -1,13 +1,13 @@
 $provParams = @{
-	Name = 'NuGet'
+	Name           = 'NuGet'
 	MinimumVersion = '2.8.5.208'
-	Force = $true
+	Force          = $true
 }
 
 $null = Install-PackageProvider @provParams
 $null = Import-PackageProvider @provParams
 
-$requiredModules = @('Pester','PSPostMan','PSScriptAnalyzer')
+$requiredModules = @('Pester', 'PSPostMan')
 foreach ($m in $requiredModules) {
 	Write-Host "Installing module [$($m)]..."
 	Install-Module -Name $m -Force -Confirm:$false
