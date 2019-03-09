@@ -2,7 +2,7 @@ $thisModule = Get-Module -ListAvailable -Name 'iPerfAutomate'
 
 $iperfFileName = 'iperf3.exe'
 $Defaults = @{
-	IPerfSharedFolderPath       = $thismodule.ModuleBase
+	IPerfSharedFolderPath       = $thismodule.ModuleBase[0]
 	EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
 	SmtpServer                  = 'foo.test.local'
 	InvokeIPerfPSSessionSuffix  = 'iPerf'
