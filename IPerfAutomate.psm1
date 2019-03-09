@@ -2,7 +2,7 @@ $thisModule = Get-Module -ListAvailable -Name 'iPerfAutomate'
 
 $iperfFileName = 'iperf3.exe'
 $Defaults = @{
-	IPerfSharedFolderPath       = "C:\Program Files\WindowsPowerShell\Modules\IperfAutomate\$($thisModule.Version)"
+	IPerfSharedFolderPath       = $thismodule.ModuleBase[0]
 	EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
 	SmtpServer                  = 'foo.test.local'
 	InvokeIPerfPSSessionSuffix  = 'iPerf'
@@ -344,7 +344,7 @@ function Install-IPerfModule {
 	}
 	process {
 		try {
-			$modulePath = ConvertToUncPath -LocalFilePath 'C:\Program Files\WindowsPowerShell\Modules' -ComputerName $ComputerName
+			$modulePath = ConvertToUncPath -LocalFilePath $Defaults.IPerfSharedFolderPath -ComputerName $ComputerName
 			Write-Verbose -Message "Copying IPerf module to [$($modulePath)]..."
 			if ($PSScriptRoot -eq 'iPerfAutomate') {
 				$path = $PSScriptRoot
