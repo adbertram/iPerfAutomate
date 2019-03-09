@@ -1,6 +1,8 @@
+$thisModule = Get-Module -ListAvailable -Name 'iPerfAutomate'
+
 $iperfFileName = 'iperf3.exe'
 $Defaults = @{
-	IPerfSharedFolderPath       = 'C:\Program Files\WindowsPowerShell\Modules\IperfAutomate'
+	IPerfSharedFolderPath       = "C:\Program Files\WindowsPowerShell\Modules\IperfAutomate\$($thisModule.Version)"
 	EmailNotificationRecipients = 'foo@var.com', 'ghi@whaev.com'
 	SmtpServer                  = 'foo.test.local'
 	InvokeIPerfPSSessionSuffix  = 'iPerf'
