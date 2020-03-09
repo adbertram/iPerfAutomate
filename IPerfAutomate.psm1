@@ -428,7 +428,10 @@ function Start-IPerfMonitorTest {
 					$true
 				}
 			})]
-		[string]$FileSize
+		[string]$FileSize,
+
+		[Parameter()]
+		[switch]$OutputJSON
 	)
 	begin {
 		$ErrorActionPreference = 'Stop'
@@ -476,6 +479,9 @@ function Start-IPerfMonitorTest {
 				$iPerfArgs = ('-c {0} -w {1}' -f $_, $WindowSize)
 				if ($PSBoundParameters.ContainsKey('FileSize')) {
 					$iPerfArgs += " -F `"$localTestFilePath`""
+				}
+				if ($OutputJSON) {
+					$iPerfArgs += ' -J '
 				}
 				InvokeIperf -ComputerName $FromServerName -Arguments $iPerfArgs
 			}
